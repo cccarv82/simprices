@@ -9,7 +9,8 @@
 			"extensions": [
 				"GitHub.copilot",
 				"GitHub.copilot-chat",
-				"donjayamanne.python-environment-manager"
+				"donjayamanne.python-environment-manager",
+				"rangav.vscode-thunder-client"
 			]
 		}
 	}
