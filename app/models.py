@@ -11,8 +11,9 @@ class Base(db.Model):
     link_compra = db.Column(db.String(200))
     categoria = db.Column(db.String(50))
     status_preco = db.Column(db.String(50))
+    status = db.Column(db.String(50), default='ativo')
 
-    def __init__(self, nome, nM, valor, valor_por_nM, data_consulta, link_compra, categoria, status_preco=None):
+    def __init__(self, nome, nM, valor, valor_por_nM, data_consulta, link_compra, categoria, status, status_preco=None):
         self.nome = nome
         self.nM = nM
         self.valor = valor
@@ -21,3 +22,4 @@ class Base(db.Model):
         self.link_compra = link_compra
         self.categoria = categoria
         self.status_preco = status_preco
+        self.status = status

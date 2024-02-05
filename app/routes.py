@@ -10,11 +10,11 @@ from marshmallow import post_dump
 # Schema Base
 class BaseSchema(ma.Schema):
     class Meta:
-        fields = ('id', 'nome', 'nM', 'valor', 'valor_por_nM', 'data_consulta', 'link_compra', 'status_preco', 'categoria')
+        fields = ('id', 'nome', 'nM', 'valor', 'valor_por_nM', 'data_consulta', 'link_compra', 'status_preco', 'categoria', 'status')
 
     @post_dump
     def reorder(self, data, **kwargs):
-        order = ["id", "data_consulta", "link_compra", "nome", "nM", "categoria", "valor", "valor_por_nM", "status_preco"]
+        order = ["id", "data_consulta", "link_compra", "nome", "nM", "categoria", "valor", "valor_por_nM", "status_preco", "status"]
         return {k: data[k] for k in order}
 
 base_schema = BaseSchema()
@@ -23,10 +23,8 @@ bases_schema = BaseSchema(many=True)
 # Endpoint para criar um novo produto
 @app.route('/base', methods=['POST'])
 def add_base():
-    print(request.json)  # Imprime o corpo da requisição
     link_compra = request.json['link_compra']
     categoria = request.json['categoria']
-    print(categoria)  # Imprime a categoria
 
     # Faz uma solicitação GET para a página do produto
     response = requests.get(link_compra)
@@ -52,6 +50,7 @@ def add_base():
         produto_existente.data_consulta = data_consulta
         produto_existente.valor_por_nM = valor_por_nM
         produto_existente.categoria = categoria
+        produto_existente.status = 'ativo'
 
         # Calcular o status_preco
         if valor > produto_existente.valor:
@@ -62,7 +61,7 @@ def add_base():
             produto_existente.status_preco = 'manteve'
     else:
         # Inserir um novo produto
-        novo_base = Base(nome, nM, valor, valor_por_nM, data_consulta, link_compra, categoria)
+        novo_base = Base(nome, nM, valor, valor_por_nM, data_consulta, link_compra, categoria, status='ativo')
         db.session.add(novo_base)
 
     # Commit das alterações
@@ -72,6 +71,46 @@ def add_base():
     print(produto_final.categoria)  # Imprime a categoria do produto final
 
     return base_schema.jsonify(produto_final)
+
+# Endpoint para atualizar todos os produtos
+@app.route('/update', methods=['POST'])
+def update_products():
+    # Get all products from the database
+    products = Base.query.all()
+
+    # Loop through each product
+    for product in products:
+        # Faz uma solicitação GET para a página do produto
+        response = requests.get(product.link_compra)
+
+        # Analisa a página da web com BeautifulSoup
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # Determina qual função de scraping usar com base no URL do produto
+        if 'loja.prsim.com.br' in product.link_compra:
+            nome, nM, valor = scrape_prsim(soup)
+        else:
+            continue  # Skip this product if the site is not supported
+
+        # Update the product's information
+        product.nome = nome
+        product.nM = nM
+        product.valor = valor
+        product.valor_por_nM = valor / float(nM)
+        product.data_consulta = datetime.now()
+
+        # Calcular o status_preco
+        if valor > product.valor:
+            product.status_preco = 'subiu'
+        elif valor < product.valor:
+            product.status_preco = 'desceu'
+        else:
+            product.status_preco = 'manteve'
+
+    # Commit the changes to the database
+    db.session.commit()
+
+    return jsonify({'message': 'Products updated successfully'}), 200
 
 # Endpoint para listar todos os produtos
 @app.route('/bases', methods=['GET'])

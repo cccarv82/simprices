@@ -3,8 +3,15 @@ from bs4 import BeautifulSoup
 # https://loja.prsim.com.br
 def scrape_prsim(soup):
     nome = soup.select_one('.title-product > h1:nth-child(1)').text
-    nM = soup.select_one('#collapse-description > ul:nth-child(4) > li:nth-child(1) > p:nth-child(1) > span:nth-child(2)').text
-    nM = nM.replace('Nm', '').strip()
+
+    # Extrair o torque
+    torque_element = soup.select_one('#content .content-product-content #tab-description #collapse-description ul:first-of-type li:first-of-type')
+    if torque_element is not None:
+        torque_text = torque_element.get_text(strip=True)
+        nM = torque_text.replace('Torque:', '').replace(' Nm', '')
+    else:
+        nM = '0'  # fallback value
+
     valor_str = soup.select_one('#price-old').text.replace('R$', '').strip()
     valor = float(valor_str.replace('.', '').replace(',', '.'))
     return nome, nM, valor
