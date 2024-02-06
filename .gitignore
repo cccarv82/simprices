@@ -166,3 +166,4 @@ alembic.ini
 env.py
 script.py.mako
 *_added_*.py
+bases.json
